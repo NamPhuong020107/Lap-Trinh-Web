@@ -1,0 +1,282 @@
+/* =========================================
+   taikhoan.css
+   Trang tài khoản cá nhân (taikhoan.php)
+========================================= */
+/* =========================
+1. CÀI ĐẶT CHUNG
+========================= */
+html {
+    overflow-y: scroll;
+}
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+}
+
+/* =========================
+2. HEADER (ĐỒNG BỘ TOÀN SITE)
+========================= */
+.header {
+    background-color: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 10px 0;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* LOGO */
+.logo a {
+    font-size: 1.6rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.logo-fast {
+    color: #0e0d0d;
+}
+
+.logo-food {
+    color: #f55318;
+}
+
+/* NAVBAR */
+.navbar {
+    display: flex;
+    gap: 25px;
+}
+
+.navbar a {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #555;
+    padding: 5px 0;
+    position: relative;
+    transition: all 0.12s ease-out;
+}
+
+.navbar a:hover {
+    color: #ff4757;
+    transform: scale(1.01);
+    font-weight: 700;
+}
+
+.navbar a.active {
+    color: #ff4757;
+    font-weight: 700;
+}
+
+.navbar a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #ff4757;
+    border-radius: 2px;
+}
+
+/* HEADER ACTIONS */
+.header-actions {
+    display: flex;
+    gap: 15px;
+    font-size: 1.2rem;
+}
+
+.header-actions a {
+    width: 40px;
+    height: 40px;
+    background-color: #f1f2f6;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.header-actions a:hover {
+    background-color: #ff4757;
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+.cart-badge {
+    position: absolute;
+    top: -6px;
+    right: -8px;
+    background-color: #ff5722;
+    color: #ffffff;
+    font-size: 11px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* ===== TÀI KHOẢN ===== */
+
+.account-page {
+    width: 900px;
+    margin: 30px auto;
+    display: flex;
+    background: white;
+    border: 1px solid #eee;
+}
+
+/* MENU TRÁI */
+
+.account-sidebar {
+    width: 220px;
+    border-right: 1px solid #eee;
+    padding: 20px 0;
+}
+
+.account-sidebar a {
+    display: block;
+    padding: 15px 20px;
+    color: #555;
+    text-decoration: none;
+}
+
+.account-sidebar a:hover,
+.account-sidebar .account-active {
+    background: #fff0eb;
+    color: #ff4324;
+}
+
+/* NỘI DUNG */
+
+.account-content {
+    flex: 1;
+    padding: 30px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-info h2 {
+    margin: 0;
+}
+
+.user-info p {
+    margin: 5px 0;
+    color: #777;
+}
+
+.user-avatar {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: #eef3f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+.account-content hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 25px 0;
+}
+
+.account-content > h2 {
+    font-size: 20px;
+}
+
+/* Ô THÔNG TIN */
+
+.info-box {
+    margin: 15px 0;
+}
+
+.info-box label {
+    display: block;
+    color: #777;
+    margin-bottom: 5px;
+}
+
+.info-box input {
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+/* ĐỊA CHỈ */
+
+.address-box {
+    margin-top: 30px;
+}
+
+.address-box h3 {
+    font-size: 18px;
+}
+
+.address-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.address-content p {
+    color: #666;
+}
+
+.address-content a {
+    color: #ff4324;
+    text-decoration: none;
+}
+
+/* NÚT LƯU THAY ĐỔI (bổ sung: trước đây nút này chưa có kiểu riêng) */
+
+.account-content .register-button {
+    width: 100%;
+    height: 50px;
+    border: none;
+    border-radius: 10px;
+    background: #ff5c35;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.account-content .register-button:hover {
+    background: #f45d3d;
+}

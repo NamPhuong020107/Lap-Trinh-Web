@@ -1,0 +1,492 @@
+/* ================= GLOBAL STYLES ================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+body {
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+}
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+}
+/* =========================
+1. CÀI ĐẶT CHUNG
+========================= */
+html {
+    overflow-y: scroll;
+}
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+}
+
+/* =========================
+2. HEADER (ĐỒNG BỘ TOÀN SITE)
+========================= */
+.header {
+    background-color: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 10px 0;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* LOGO */
+.logo a {
+    font-size: 1.6rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.logo-fast {
+    color: #0e0d0d;
+}
+
+.logo-food {
+    color: #f55318;
+}
+
+/* NAVBAR */
+.navbar {
+    display: flex;
+    gap: 25px;
+}
+
+.navbar a {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #555;
+    padding: 5px 0;
+    position: relative;
+    transition: all 0.12s ease-out;
+}
+
+.navbar a:hover {
+    color: #ff4757;
+    transform: scale(1.01);
+    font-weight: 700;
+}
+
+.navbar a.active {
+    color: #ff4757;
+    font-weight: 700;
+}
+
+.navbar a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #ff4757;
+    border-radius: 2px;
+}
+/* HEADER ACTIONS */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.header-actions a {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    background-color: #f1f2f6;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    text-decoration: none;
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+.header-actions a:hover {
+    background-color: #ff4757;
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+.cart-badge {
+    position: absolute;
+    top: -6px;
+    right: -8px;
+    background-color: #ff5722;
+    color: #ffffff;
+    font-size: 11px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    line-height: 1;
+}
+/* ================= THỰC ĐƠN SECTION ================= */
+.account-section {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+.account-title {
+    font-size: 2rem;
+    color: #2f3542;
+    margin-bottom: 25px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.account-container {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 30px;
+    align-items: start;
+}
+/* BÊN TRÁI: DANH MỤC */
+.account-left {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.category-title {
+    font-size: 1.2rem;
+    color: #2f3542;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f1f2f6;
+}
+.account-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.account-menu a.category-btn {
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #555;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.25s ease;
+}
+.account-menu a.category-btn:hover {
+    background-color: #ffeaa7;
+    color: #d63031;
+    padding-left: 20px;
+}
+.account-menu a.category-btn.active {
+    background-color: #ff4757;
+    color: #ffffff;
+}
+/* BÊN PHẢI: MÓN ĂN */
+.account-right h2 {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+    color: #2f3542;
+}
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+}
+.food-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.food-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+.food-icon {
+    font-size: 3.5rem;
+    margin-bottom: 10px;
+}
+.food-card h3 {
+    font-size: 1.1rem;
+    color: #2f3542;
+    margin-bottom: 8px;
+}
+.price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ff4757;
+    margin-bottom: 15px;
+}
+.btn-add {
+    background-color: #ffa502;
+    color: #ffffff;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.btn-add:hover {
+    background-color: #ff4757;
+    transform: scale(1.1);
+}
+/* ẨN RADIO */
+#cat-all,
+#cat-burger,
+#cat-garan,
+#cat-pizza,
+#cat-khoaitay,
+#cat-douong {
+    display: none;
+}
+/* ================= KHUNG CHÍNH ================= */
+.menu-page {
+    width: 90%;
+    max-width: 1200px;
+    margin: 35px auto 60px;
+}
+.menu-page-title {
+    text-align: center;
+    font-size: 30px;
+    margin-bottom: 30px;
+    color: #222;
+}
+/* ================= BỐ CỤC ================= */
+.menu-container {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 30px;
+    align-items: start;
+}
+/* ================= SIDEBAR ================= */
+.menu-sidebar {
+    background: white;
+    border: 1px solid #eeeeee;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+}
+.category-title {
+    margin: 0 0 18px;
+    font-size: 19px;
+    color: #222;
+}
+
+/* ================= DANH MỤC ================= */
+.menu-category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.category-btn {
+    display: block;
+    padding: 12px 14px;
+    border-radius: 8px;
+    color: #333;
+    font-size: 15px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: 0.2s;
+    font-weight: 500;
+}
+.category-btn:hover {
+    background-color: #fff0eb;
+    color: #f4512a;
+}
+/* ================= TIÊU ĐỀ ================= */
+.menu-category-title {
+    margin: 0 0 20px;
+    font-size: 22px;
+    color: #222;
+}
+/* Mặc định */
+.title-all {
+    display: block;
+}
+.title-burger,
+.title-garan,
+.title-pizza,
+.title-khoaitay,
+.title-douong {
+    display: none;
+}
+/* ================= GRID MÓN ================= */
+.menu-food-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+}
+/* ================= CARD ================= */
+.menu-food-card {
+    position: relative;
+    min-height: 220px;
+    background: white;
+    border-radius: 12px;
+    padding: 22px;
+    box-sizing: border-box;
+    border: 1px solid #eeeeee;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.menu-food-icon {
+    font-size: 55px;
+    margin-bottom: 12px;
+}
+.menu-food-card h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #222;
+}
+.menu-price {
+    margin: 0;
+    color: #f4512a;
+    font-size: 15px;
+    font-weight: bold;
+}
+/* ================= NÚT + ================= */
+.menu-add {
+    position: absolute;
+    right: 15px;
+    bottom: 15px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    border-radius: 50%;
+    background-color: #f4512a;
+    color: white;
+    font-size: 22px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    cursor: pointer;
+}
+.menu-add span {
+    display: block;
+    font-size: 22px;
+    line-height: 1;
+    transform: translateY(-3px); /* Nhích nhẹ lên 1px nếu thấy hơi xệ */
+}
+.menu-add:hover {
+    background-color: #df3f1e;
+}
+/* Mặc định hiển thị tất cả */
+.menu-food-card {
+    display: flex;
+}
+/* BURGER */
+#cat-burger:checked ~ .menu-page .menu-food-card {
+    display: none;
+}
+#cat-burger:checked ~ .menu-page .menu-food-card.burger {
+    display: flex;
+}
+/* GÀ RÁN */
+#cat-garan:checked ~ .menu-page .menu-food-card {
+    display: none;
+}
+#cat-garan:checked ~ .menu-page .menu-food-card.garan {
+    display: flex;
+}
+/* PIZZA */
+#cat-pizza:checked ~ .menu-page .menu-food-card {
+    display: none;
+}
+#cat-pizza:checked ~ .menu-page .menu-food-card.pizza {
+    display: flex;
+}
+/* KHOAI TÂY */
+#cat-khoaitay:checked ~ .menu-page .menu-food-card {
+    display: none;
+}
+#cat-khoaitay:checked ~ .menu-page .menu-food-card.khoaitay {
+    display: flex;
+}
+/* ĐỒ UỐNG */
+#cat-douong:checked ~ .menu-page .menu-food-card {
+    display: none;
+}
+#cat-douong:checked ~ .menu-page .menu-food-card.douong {
+    display: flex;
+}
+/* ================= RESPONSIVE ================= */
+@media (max-width: 850px) {
+    .account-container {
+        grid-template-columns: 1fr;
+    }
+    .account-menu {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .account-menu a.category-btn {
+        flex: 1 1 calc(50% - 10px);
+        text-align: center;
+    }
+    .account-menu a.category-btn:hover {
+        padding-left: 15px;
+    }
+}
+@media (max-width: 600px) {
+    .header-container {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .navbar {
+        gap: 15px;
+        font-size: 0.9rem;
+    }
+    .menu-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+}

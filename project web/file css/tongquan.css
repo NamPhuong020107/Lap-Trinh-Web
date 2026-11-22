@@ -1,0 +1,388 @@
+/* =========================================
+   tongquan.css
+   Giao diện Dashboard Tổng quan (tongquan.php)
+   Đồng bộ với quanlisanpham.css
+========================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body.app-layout {
+    background-color: #f8f9fa;
+    color: #334155;
+    min-height: 100vh;
+    display: flex;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Custom thanh cuộn giống quanlisanpham */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* =========================================
+   SIDEBAR BÊN TRÁI
+========================================= */
+.sidebar {
+    width: 256px;
+    background-color: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+}
+
+.sidebar__brand {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.brand-icon {
+    font-size: 25.6px;
+    margin-right: 8px;
+}
+
+.brand-text {
+    font-size: 25.6px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: #0f172a;
+}
+
+.brand-highlight {
+    color: #ef4444;
+}
+
+.sidebar__nav {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: #475569;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.nav-icon {
+    width: 20px;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.nav-item:not(.nav-item--active):not(.nav-item--logout):hover {
+    background-color: #dee1e4;
+    color: #0f172a;
+}
+
+.nav-item--active,
+.nav-item--active:hover {
+    background-color: #f24e1e;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(249, 115, 22, 0.3);
+}
+
+.nav-item--active .nav-icon {
+    color: #ffffff;
+}
+
+.sidebar__footer {
+    padding: 16px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.nav-item--logout:hover {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+.nav-item--logout:hover .nav-icon {
+    color: #dc2626;
+}
+
+/* =========================================
+   MAIN WRAPPER & HEADER (GIỐNG QUẢN LÝ SẢN PHẨM)
+========================================= */
+.main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 100vh;
+}
+
+.header {
+    height: 64px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.search-form {
+    position: relative;
+    width: 320px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 0.875rem;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 16px 8px 40px;
+    font-size: 0.875rem;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    border-color: #f24e1e;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #1e293b;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+}
+
+.user-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+/* =========================================
+   NỘI DUNG DASHBOARD
+========================================= */
+.content {
+    padding: 32px;
+    flex: 1;
+}
+
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.page-subtitle {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* Lưới 4 ô thống kê */
+.g4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+/* Lưới 2 cột biểu đồ & bảng */
+.g2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+/* Thẻ khung trắng */
+.o {
+    background-color: #ffffff;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.g2 .o {
+    min-height: 260px;
+}
+
+.o h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 16px;
+}
+
+.o small {
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.o b {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* Biểu đồ cột */
+.cot {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 170px;
+}
+
+.cot div {
+    flex: 1;
+    background-color: #f24e1e;
+    border-radius: 6px 6px 0 0;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding-top: 4px;
+    text-align: center;
+}
+
+.ngay {
+    display: flex;
+    gap: 10px;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 8px;
+}
+
+.ngay span {
+    flex: 1;
+    text-align: center;
+}
+
+/* Bảng dữ liệu trong các khung */
+.o table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.o th {
+    padding: 10px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: #475569;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.o td {
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+.o td b {
+    font-size: 0.875rem;
+}
+
+.o tbody tr:hover {
+    background-color: rgba(248, 250, 252, 0.8);
+}
+
+.trong {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    padding-top: 65px;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+@media (max-width: 1024px) {
+    .g4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .g2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    body.app-layout {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+    }
+    .header {
+        padding: 0 16px;
+    }
+    .search-form {
+        width: 200px;
+    }
+    .content {
+        padding: 16px;
+    }
+    .g4 {
+        grid-template-columns: 1fr;
+    }
+}
