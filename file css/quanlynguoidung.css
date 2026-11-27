@@ -291,25 +291,25 @@ a {
    Ô NHẬP / CHỌN
 ========================================= */
 .form-group {
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .form-label {
     display: block;
     margin-bottom: 6px;
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    color: #334155;
+    color: #1e293b;
 }
 
 .form-control {
     width: 100%;
-    padding: 9px 14px;
+    padding: 10px 14px;
     font-size: 0.875rem;
     color: #334155;
-    background-color: #f8fafc;
+    background-color: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 10px;
     outline: none;
     transition: border-color 0.2s;
 }
@@ -335,6 +335,9 @@ a {
 .filter-card .form-control {
     width: auto;
     min-width: 210px;
+    background-color: #f8fafc;
+    border-radius: 12px;
+    padding: 9px 14px;
 }
 
 /* =========================================
@@ -447,8 +450,10 @@ a {
     z-index: 2000;
     padding: 16px;
     background-color: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
     align-items: center;
     justify-content: center;
+    overflow-y: auto;
 }
 
 .modal--open {
@@ -457,50 +462,72 @@ a {
 
 .modal__dialog {
     width: 100%;
-    max-width: 520px;
+    max-width: 600px;
     background-color: #ffffff;
     border-radius: 16px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+/* Khung popup xác nhận xóa gọn hơn */
+.modal__dialog--sm {
+    max-width: 440px;
 }
 
 .modal__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 24px;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 20px 24px 14px;
 }
 
 .modal__title {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: #0f172a;
 }
 
 .modal__close {
-    width: 32px;
-    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
     border: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: transparent;
     color: #64748b;
-    font-size: 1rem;
+    font-size: 1.35rem;
+    line-height: 1;
     cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .modal__close:hover {
     background-color: #f1f5f9;
+    color: #0f172a;
 }
 
 .modal__body {
-    padding: 22px 24px;
+    padding: 8px 24px 24px;
+}
+
+.modal__body > p {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #475569;
+}
+
+.modal__body > p strong {
+    color: #0f172a;
 }
 
 .modal__footer {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: 20px;
+    margin-top: 18px;
 }
 
 /* =========================================

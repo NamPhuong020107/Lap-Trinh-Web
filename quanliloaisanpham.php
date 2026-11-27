@@ -11,8 +11,8 @@ if (!isset($_SESSION['role']) || ($_SESSION['role'] != "manager" && $_SESSION['r
 // ============================================================================
 // CHỨC NĂNG 1: XỬ LÝ THÊM LOẠI SẢN PHẨM MỚI
 // ============================================================================
-if (isset($_POST['action_add'])) {
-    $category_name = mysqli_real_escape_string($conn, trim($_POST['category_name']));
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_add'])) {
+    $category_name = mysqli_real_escape_string($conn, trim($_POST['category_name'] ?? ''));
 
     if (!empty($category_name)) {
         $sql_add = "INSERT INTO categories (category_name) VALUES ('$category_name')";
@@ -25,9 +25,9 @@ if (isset($_POST['action_add'])) {
 // ============================================================================
 // CHỨC NĂNG 2: XỬ LÝ SỬA CẬP NHẬT LOẠI SẢN PHẨM
 // ============================================================================
-if (isset($_POST['action_edit'])) {
-    $category_id = (int)$_POST['category_id'];
-    $category_name = mysqli_real_escape_string($conn, trim($_POST['category_name']));
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit'])) {
+    $category_id = (int)($_POST['category_id'] ?? 0);
+    $category_name = mysqli_real_escape_string($conn, trim($_POST['category_name'] ?? ''));
 
     if ($category_id > 0 && !empty($category_name)) {
         $sql_edit = "UPDATE categories SET category_name = '$category_name' WHERE category_id = $category_id";
@@ -70,6 +70,33 @@ $sql_categories = "SELECT c.category_id, c.category_name, COUNT(f.Foods_ID) AS t
                    ORDER BY c.category_id DESC";
 
 $result_categories = mysqli_query($conn, $sql_categories);
+
+// ============================================================================
+// CHUẨN BỊ DỮ LIỆU POPUP BẰNG IF PHP
+// ============================================================================
+$open_add = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_add']));
+
+$edit_item = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_edit'])) {
+    $edit_id = (int)($_POST['edit_id'] ?? 0);
+    if ($edit_id > 0) {
+        $res_edit = mysqli_query($conn, "SELECT category_id, category_name FROM categories WHERE category_id = $edit_id LIMIT 1");
+        if ($res_edit) {
+            $edit_item = mysqli_fetch_assoc($res_edit);
+        }
+    }
+}
+
+$del_item = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_delete'])) {
+    $del_id = (int)($_POST['delete_id'] ?? 0);
+    if ($del_id > 0) {
+        $res_del = mysqli_query($conn, "SELECT category_id, category_name FROM categories WHERE category_id = $del_id LIMIT 1");
+        if ($res_del) {
+            $del_item = mysqli_fetch_assoc($res_del);
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -138,11 +165,12 @@ $result_categories = mysqli_query($conn, $sql_categories);
             <div class="page-header">
                 <div>
                     <h1 class="page-title">Quản lý loại sản phẩm</h1>
-                    
                 </div>
-                <button onclick="toggleAddModal(true)" class="btn btn--primary">
-                    <i class="fa-solid fa-plus"></i> Thêm loại mới
-                </button>
+                <form action="quanliloaisanpham.php" method="POST" style="display: inline;">
+                    <button type="submit" name="btn_open_add" class="btn btn--primary">
+                        <i class="fa-solid fa-plus"></i> Thêm loại mới
+                    </button>
+                </form>
             </div>
 
             <!-- FORM BỘ LỌC DỮ LIỆU -->
@@ -192,12 +220,18 @@ $result_categories = mysqli_query($conn, $sql_categories);
                                             </span>
                                         </td>
                                         <td class="text-right">
-                                            <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($item)); ?>)" class="btn btn--sm btn--blue">
-                                                Sửa
-                                            </button>
-                                            <a href="quanliloaisanpham.php?action=delete&id=<?php echo $item['category_id']; ?>" onclick="return confirm('Bạn chắc chắn muốn xóa loại này? Các món thuộc loại có thể bị ảnh hưởng!')" class="btn btn--sm btn--rose">
-                                                Xóa
-                                            </a>
+                                            <form action="quanliloaisanpham.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="edit_id" value="<?php echo (int)$item['category_id']; ?>">
+                                                <button type="submit" name="btn_open_edit" class="btn btn--sm btn--blue">
+                                                    Sửa
+                                                </button>
+                                            </form>
+                                            <form action="quanliloaisanpham.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="delete_id" value="<?php echo (int)$item['category_id']; ?>">
+                                                <button type="submit" name="btn_open_delete" class="btn btn--sm btn--rose">
+                                                    Xóa
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
@@ -210,80 +244,77 @@ $result_categories = mysqli_query($conn, $sql_categories);
     </div>
 
     <!-- MODAL 1: THÊM LOẠI SẢN PHẨM MỚI -->
-    <div id="categoryModal" class="modal">
-        <div class="modal__dialog">
-            <div class="modal__header">
-                <h3 class="modal__title">Thêm loại sản phẩm mới</h3>
-                <button onclick="toggleAddModal(false)" class="modal__close"><i class="fa-solid fa-xmark"></i></button>
+    <?php if ($open_add): ?>
+        <div class="modal modal--open">
+            <div class="modal__dialog">
+                <div class="modal__header">
+                    <h3 class="modal__title">Thêm loại sản phẩm mới</h3>
+                    <a href="quanliloaisanpham.php" class="modal__close"><i class="fa-solid fa-xmark"></i></a>
+                </div>
+
+                <form action="quanliloaisanpham.php" method="POST" class="modal__body">
+                    <input type="hidden" name="action_add" value="1">
+                    <div class="form-group">
+                        <label class="form-label">Tên loại sản phẩm</label>
+                        <input type="text" name="category_name" required placeholder="Ví dụ: Burger, Nước ngọt, Gà rán..." class="form-control">
+                    </div>
+
+                    <div class="modal__footer">
+                        <a href="quanliloaisanpham.php" class="btn btn--light">Hủy</a>
+                        <button type="submit" class="btn btn--primary">Lưu vào Database</button>
+                    </div>
+                </form>
             </div>
-
-            <form action="quanliloaisanpham.php" method="POST" class="modal__body">
-                <input type="hidden" name="action_add" value="1">
-                <div class="form-group">
-                    <label class="form-label">Tên loại sản phẩm</label>
-                    <input type="text" name="category_name" required placeholder="Ví dụ: Burger, Nước ngọt, Gà rán..." class="form-control">
-                </div>
-
-                <div class="modal__footer">
-                    <button type="button" onclick="toggleAddModal(false)" class="btn btn--light">Hủy</button>
-                    <button type="submit" class="btn btn--primary">Lưu vào Database</button>
-                </div>
-            </form>
         </div>
-    </div>
+    <?php endif; ?>
 
     <!-- MODAL 2: SỬA LOẠI SẢN PHẨM -->
-    <div id="editCategoryModal" class="modal">
-        <div class="modal__dialog">
-            <div class="modal__header">
-                <h3 class="modal__title">Sửa loại sản phẩm</h3>
-                <button onclick="toggleEditModal(false)" class="modal__close"><i class="fa-solid fa-xmark"></i></button>
+    <?php if ($edit_item): ?>
+        <div class="modal modal--open">
+            <div class="modal__dialog">
+                <div class="modal__header">
+                    <h3 class="modal__title">Sửa loại sản phẩm</h3>
+                    <a href="quanliloaisanpham.php" class="modal__close"><i class="fa-solid fa-xmark"></i></a>
+                </div>
+
+                <form action="quanliloaisanpham.php" method="POST" class="modal__body">
+                    <input type="hidden" name="action_edit" value="1">
+                    <input type="hidden" name="category_id" value="<?php echo (int)$edit_item['category_id']; ?>">
+
+                    <div class="form-group">
+                        <label class="form-label">Tên loại sản phẩm</label>
+                        <input type="text" name="category_name" value="<?php echo htmlspecialchars($edit_item['category_name']); ?>" required class="form-control">
+                    </div>
+
+                    <div class="modal__footer">
+                        <a href="quanliloaisanpham.php" class="btn btn--light">Hủy</a>
+                        <button type="submit" class="btn btn--blue">Cập nhật thay đổi</button>
+                    </div>
+                </form>
             </div>
-
-            <form action="quanliloaisanpham.php" method="POST" class="modal__body">
-                <input type="hidden" name="action_edit" value="1">
-                <input type="hidden" id="edit_category_id" name="category_id">
-
-                <div class="form-group">
-                    <label class="form-label">Tên loại sản phẩm</label>
-                    <input type="text" id="edit_category_name" name="category_name" required class="form-control">
-                </div>
-
-                <div class="modal__footer">
-                    <button type="button" onclick="toggleEditModal(false)" class="btn btn--light">Hủy</button>
-                    <button type="submit" class="btn btn--blue">Cập nhật thay đổi</button>
-                </div>
-            </form>
         </div>
-    </div>
+    <?php endif; ?>
 
-    <!-- SCRIPTS ĐIỀU KHIỂN MODAL POPUP -->
-    <script>
-        function toggleAddModal(show) {
-            const modal = document.getElementById('categoryModal');
-            if (show) {
-                modal.classList.add('modal--open');
-            } else {
-                modal.classList.remove('modal--open');
-            }
-        }
+    <!-- MODAL 3: XÁC NHẬN XÓA LOẠI SẢN PHẨM -->
+    <?php if ($del_item): ?>
+        <div class="modal modal--open">
+            <div class="modal__dialog">
+                <div class="modal__header">
+                    <h3 class="modal__title">Xác nhận xóa loại sản phẩm</h3>
+                    <a href="quanliloaisanpham.php" class="modal__close"><i class="fa-solid fa-xmark"></i></a>
+                </div>
 
-        function toggleEditModal(show) {
-            const modal = document.getElementById('editCategoryModal');
-            if (show) {
-                modal.classList.add('modal--open');
-            } else {
-                modal.classList.remove('modal--open');
-            }
-        }
+                <div class="modal__body">
+                    <p>Xóa loại <strong><?php echo htmlspecialchars($del_item['category_name']); ?></strong>? Các món thuộc loại có thể bị ảnh hưởng.</p>
+                    <div class="modal__footer">
+                        <a href="quanliloaisanpham.php" class="btn btn--light">Hủy</a>
+                        <a href="quanliloaisanpham.php?action=delete&id=<?php echo (int)$del_item['category_id']; ?>" class="btn btn--rose">Xác nhận xóa</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
-        function openEditModal(item) {
-            document.getElementById('edit_category_id').value = item.category_id;
-            document.getElementById('edit_category_name').value = item.category_name;
-
-            toggleEditModal(true);
-        }
-    </script>
 </body>
 
 </html>

@@ -1,8 +1,13 @@
 <?php
-// quanlynguoidung.php
+
+
 session_start();
 require_once __DIR__ . '/ketnoi.php';
-
+$role_session = $_SESSION['role'] ?? '';
+if (empty($_SESSION['user_id']) || $role_session !== 'manager') {
+    header('Location: dangnhap.php');
+    exit();
+}
 // Vai trò và trạng thái: mã trong database => tên hiển thị
 const VAI_TRO = ['customer' => 'Khách hàng', 'manager' => 'Quản trị'];
 const TRANG_THAI = ['active' => 'Hoạt động', 'inactive' => 'Không hoạt động'];
@@ -20,10 +25,10 @@ if (($_GET['loi'] ?? '') === 'trung') {
 // Id của người đang đăng nhập (để không tự xóa / tự khóa mình)
 $my_id = (int)($_SESSION['user_id'] ?? 0);
 
-// ============================================================================
-// CHỨC NĂNG 1: THÊM NGƯỜI DÙNG MỚI
-// ============================================================================
-if (isset($_POST['action_add'])) {
+// =========================================================================
+// 1. XỬ LÝ THÊM NGƯỜI DÙNG (khi bấm nút có name="btn_add_user")
+// =========================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_add_user'])) {
     $username = trim($_POST['username'] ?? '');
     $fullname = trim($_POST['fullname'] ?? '');
     $email    = trim($_POST['email'] ?? '');
@@ -35,6 +40,18 @@ if (isset($_POST['action_add'])) {
 
     if ($username === '' || $fullname === '' || $email === '' || strlen($password) < 6) {
         header('Location: quanlynguoidung.php?loi=thieu');
+        exit();
+    }
+
+    // Kiểm tra trùng username hoặc email trước khi thêm
+    $stmt_check = mysqli_prepare($conn, "SELECT user_id FROM users WHERE username = ? OR email = ? LIMIT 1");
+    mysqli_stmt_bind_param($stmt_check, "ss", $username, $email);
+    mysqli_stmt_execute($stmt_check);
+    $trung = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_check));
+    mysqli_stmt_close($stmt_check);
+
+    if ($trung) {
+        header('Location: quanlynguoidung.php?loi=trung');
         exit();
     }
 
@@ -52,11 +69,10 @@ if (isset($_POST['action_add'])) {
     header('Location: quanlynguoidung.php' . ($ok ? '' : '?loi=trung'));
     exit();
 }
-
-// ============================================================================
-// CHỨC NĂNG 2: SỬA THÔNG TIN NGƯỜI DÙNG
-// ============================================================================
-if (isset($_POST['action_edit'])) {
+// =========================================================================
+// 2. XỬ LÝ SỬA NGƯỜI DÙNG (khi bấm nút có name="btn_update_user")
+// =========================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_update_user'])) {
     $id       = (int)($_POST['user_id'] ?? 0);
     $fullname = trim($_POST['fullname'] ?? '');
     $email    = trim($_POST['email'] ?? '');
@@ -102,18 +118,23 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
         exit();
     }
     if ($id > 0) {
-        // order_details tự xóa theo orders (ON DELETE CASCADE), cart_items cũng vậy
-        foreach (
-            [
-                "DELETE FROM orders WHERE user_id = ?",
-                "DELETE FROM cart_items WHERE user_id = ?",
-                "DELETE FROM users WHERE user_id = ?"
-            ] as $sql
-        ) {
-            $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "i", $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
+        mysqli_begin_transaction($conn);
+        try {
+            foreach (
+                [
+                    "DELETE FROM orders WHERE user_id = ?",
+                    "DELETE FROM cart_items WHERE user_id = ?",
+                    "DELETE FROM users WHERE user_id = ?"
+                ] as $sql
+            ) {
+                $stmt = mysqli_prepare($conn, $sql);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+            }
+            mysqli_commit($conn);
+        } catch (Throwable $e) {
+            mysqli_rollback($conn);
         }
     }
     header('Location: quanlynguoidung.php');
@@ -178,6 +199,194 @@ if (!empty($params)) {
 mysqli_stmt_execute($stmt);
 $users = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 mysqli_stmt_close($stmt);
+
+// =========================================================================
+// MỞ MODAL SỬA BẰNG IF PHP (khi bấm nút có name="btn_open_edit")
+// =========================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_edit'])) {
+    $edit_id = (int)($_POST['edit_id'] ?? 0);
+    $stmt_edit = mysqli_prepare($conn, "SELECT user_id, username, fullname, email, phone, address, role, status FROM users WHERE user_id = ?");
+    mysqli_stmt_bind_param($stmt_edit, "i", $edit_id);
+    mysqli_stmt_execute($stmt_edit);
+    $edit_user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_edit));
+    mysqli_stmt_close($stmt_edit);
+
+    if ($edit_user) {
+        echo '
+        <div class="modal modal--open">
+            <div class="modal__dialog">
+                <div class="modal__header">
+                    <h2 class="modal__title">Sửa thông tin người dùng</h2>
+                    <a href="quanlynguoidung.php" class="modal__close">×</a>
+                </div>
+
+                <form action="quanlynguoidung.php" method="POST" class="modal__body">
+                    <input type="hidden" name="user_id" value="' . htmlspecialchars($edit_user['user_id']) . '">
+
+                    <div class="form-group">
+                        <label class="form-label">Tên đăng nhập</label>
+                        <input type="text" value="' . htmlspecialchars($edit_user['username']) . '" disabled class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Mật khẩu mới (bỏ trống nếu không đổi)</label>
+                        <input type="password" name="password" minlength="6" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Họ và tên</label>
+                        <input type="text" name="fullname" value="' . htmlspecialchars($edit_user['fullname'] ?? '') . '" required class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" value="' . htmlspecialchars($edit_user['email'] ?? '') . '" required class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Số điện thoại</label>
+                        <input type="text" name="phone" value="' . htmlspecialchars($edit_user['phone'] ?? '') . '" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Địa chỉ</label>
+                        <input type="text" name="address" value="' . htmlspecialchars($edit_user['address'] ?? '') . '" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Vai trò</label>
+                        <select name="role" class="form-control">';
+        foreach (VAI_TRO as $ma => $ten) {
+            $selected = (($edit_user['role'] ?? 'customer') === $ma) ? 'selected' : '';
+            echo '<option value="' . $ma . '" ' . $selected . '>' . $ten . '</option>';
+        }
+        echo '          </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Trạng thái</label>
+                        <select name="status" class="form-control">';
+        foreach (TRANG_THAI as $ma => $ten) {
+            $selected = (($edit_user['status'] ?? 'active') === $ma) ? 'selected' : '';
+            echo '<option value="' . $ma . '" ' . $selected . '>' . $ten . '</option>';
+        }
+        echo '          </select>
+                    </div>
+
+                    <div class="modal__footer">
+                        <button type="submit" name="btn_update_user" class="btn btn--blue">Lưu thay đổi</button>
+                        <a href="quanlynguoidung.php" class="btn btn--light">Hủy</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        ';
+    }
+}
+
+// =========================================================================
+// MỞ MODAL THÊM BẰNG IF PHP (khi bấm nút có name="btn_open_add")
+// =========================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_add'])) {
+    echo '
+    <div class="modal modal--open">
+        <div class="modal__dialog">
+            <div class="modal__header">
+                <h2 class="modal__title">Thêm người dùng mới</h2>
+                <a href="quanlynguoidung.php" class="modal__close">×</a>
+            </div>
+
+            <form action="quanlynguoidung.php" method="POST" class="modal__body">
+                <div class="form-group">
+                    <label class="form-label">Tên đăng nhập</label>
+                    <input type="text" name="username" required class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Mật khẩu (từ 6 ký tự)</label>
+                    <input type="password" name="password" required minlength="6" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Họ và tên</label>
+                    <input type="text" name="fullname" required class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" required class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Số điện thoại</label>
+                    <input type="text" name="phone" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Địa chỉ</label>
+                    <input type="text" name="address" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Vai trò</label>
+                    <select name="role" class="form-control">';
+    foreach (VAI_TRO as $ma => $ten) {
+        echo '<option value="' . $ma . '">' . $ten . '</option>';
+    }
+    echo '          </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Trạng thái</label>
+                    <select name="status" class="form-control">';
+    foreach (TRANG_THAI as $ma => $ten) {
+        echo '<option value="' . $ma . '">' . $ten . '</option>';
+    }
+    echo '          </select>
+                </div>
+
+                <div class="modal__footer">
+                    <button type="submit" name="btn_add_user" class="btn btn--primary">Thêm mới</button>
+                    <a href="quanlynguoidung.php" class="btn btn--light">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    ';
+}
+
+// =========================================================================
+// MỞ MODAL XÁC NHẬN XÓA BẰNG IF PHP (khi bấm nút có name="btn_open_delete")
+// =========================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_delete'])) {
+    $del_id = (int)($_POST['delete_id'] ?? 0);
+    $stmt_del = mysqli_prepare($conn, "SELECT user_id, username, fullname FROM users WHERE user_id = ?");
+    mysqli_stmt_bind_param($stmt_del, "i", $del_id);
+    mysqli_stmt_execute($stmt_del);
+    $del_user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_del));
+    mysqli_stmt_close($stmt_del);
+
+    if ($del_user) {
+        echo '
+        <div class="modal modal--open">
+            <div class="modal__dialog modal__dialog--sm">
+                <div class="modal__header">
+                    <h2 class="modal__title">Xác nhận xóa người dùng</h2>
+                    <a href="quanlynguoidung.php" class="modal__close">×</a>
+                </div>
+
+                <div class="modal__body">
+                    <p>Xóa người dùng <strong>' . htmlspecialchars($del_user['fullname'] ?: $del_user['username']) . '</strong>? Toàn bộ đơn hàng và giỏ hàng của họ cũng bị xóa theo, không thể hoàn tác.</p>
+                    <div class="modal__footer">
+                        <a href="quanlynguoidung.php?action=delete&id=' . (int)$del_user['user_id'] . '" class="btn btn--rose">Xác nhận xóa</a>
+                        <a href="quanlynguoidung.php" class="btn btn--light">Hủy</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        ';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -246,11 +455,12 @@ mysqli_stmt_close($stmt);
             <div class="page-header">
                 <div>
                     <h1 class="page-title">Quản lý người dùng</h1>
-                   
                 </div>
-                <button onclick="toggleAddModal(true)" class="btn btn--primary">
-                    <i class="fa-solid fa-plus"></i> Thêm người dùng
-                </button>
+                <form action="quanlynguoidung.php" method="POST" style="display: inline;">
+                    <button type="submit" name="btn_open_add" class="btn btn--primary">
+                        <i class="fa-solid fa-plus"></i> Thêm người dùng
+                    </button>
+                </form>
             </div>
 
             <?php if ($loi !== ''): ?>
@@ -328,12 +538,18 @@ mysqli_stmt_close($stmt);
                                             </a>
                                         </td>
                                         <td class="text-right">
-                                            <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($u)); ?>)" class="btn btn--sm btn--blue">
-                                                Sửa
-                                            </button>
-                                            <a href="quanlynguoidung.php?action=delete&id=<?php echo $u['user_id']; ?>" onclick="return confirm('Xóa người dùng này? Toàn bộ đơn hàng và giỏ hàng của họ cũng bị xóa theo, không thể hoàn tác.')" class="btn btn--sm btn--rose">
-                                                Xóa
-                                            </a>
+                                            <form action="quanlynguoidung.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="edit_id" value="<?php echo $u['user_id']; ?>">
+                                                <button type="submit" name="btn_open_edit" class="btn btn--sm btn--blue">
+                                                    Sửa
+                                                </button>
+                                            </form>
+                                            <form action="quanlynguoidung.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="delete_id" value="<?php echo $u['user_id']; ?>">
+                                                <button type="submit" name="btn_open_delete" class="btn btn--sm btn--rose">
+                                                    Xóa
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -345,180 +561,6 @@ mysqli_stmt_close($stmt);
         </main>
     </div>
 
-    <!-- MODAL 1: THÊM NGƯỜI DÙNG MỚI -->
-    <div id="addModal" class="modal">
-        <div class="modal__dialog">
-            <div class="modal__header">
-                <h3 class="modal__title">Thêm người dùng mới</h3>
-                <button onclick="toggleAddModal(false)" class="modal__close"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <form action="quanlynguoidung.php" method="POST" class="modal__body">
-                <input type="hidden" name="action_add" value="1">
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Tên đăng nhập</label>
-                        <input type="text" name="username" required class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Mật khẩu (từ 6 ký tự)</label>
-                        <input type="password" name="password" required minlength="6" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Họ và tên</label>
-                    <input type="text" name="fullname" required class="form-control">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" required class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Số điện thoại</label>
-                        <input type="text" name="phone" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Địa chỉ</label>
-                    <input type="text" name="address" class="form-control">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Vai trò</label>
-                        <select name="role" class="form-control">
-                            <?php foreach (VAI_TRO as $ma => $ten): ?>
-                                <option value="<?php echo $ma; ?>"><?php echo $ten; ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Trạng thái</label>
-                        <select name="status" class="form-control">
-                            <?php foreach (TRANG_THAI as $ma => $ten): ?>
-                                <option value="<?php echo $ma; ?>"><?php echo $ten; ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="modal__footer">
-                    <button type="button" onclick="toggleAddModal(false)" class="btn btn--light">Hủy</button>
-                    <button type="submit" class="btn btn--primary">Thêm mới</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 2: SỬA NGƯỜI DÙNG -->
-    <div id="editModal" class="modal">
-        <div class="modal__dialog">
-            <div class="modal__header">
-                <h3 class="modal__title">Sửa thông tin người dùng</h3>
-                <button onclick="toggleEditModal(false)" class="modal__close"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <form action="quanlynguoidung.php" method="POST" class="modal__body">
-                <input type="hidden" name="action_edit" value="1">
-                <input type="hidden" id="edit_user_id" name="user_id">
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Tên đăng nhập</label>
-                        <input type="text" id="edit_username" disabled class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Mật khẩu mới (bỏ trống nếu không đổi)</label>
-                        <input type="password" name="password" minlength="6" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Họ và tên</label>
-                    <input type="text" id="edit_fullname" name="fullname" required class="form-control">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" id="edit_email" name="email" required class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Số điện thoại</label>
-                        <input type="text" id="edit_phone" name="phone" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Địa chỉ</label>
-                    <input type="text" id="edit_address" name="address" class="form-control">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Vai trò</label>
-                        <select id="edit_role" name="role" class="form-control">
-                            <?php foreach (VAI_TRO as $ma => $ten): ?>
-                                <option value="<?php echo $ma; ?>"><?php echo $ten; ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Trạng thái</label>
-                        <select id="edit_status" name="status" class="form-control">
-                            <?php foreach (TRANG_THAI as $ma => $ten): ?>
-                                <option value="<?php echo $ma; ?>"><?php echo $ten; ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="modal__footer">
-                    <button type="button" onclick="toggleEditModal(false)" class="btn btn--light">Hủy</button>
-                    <button type="submit" class="btn btn--blue">Cập nhật thay đổi</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- SCRIPTS ĐIỀU KHIỂN MODAL POPUP -->
-    <script>
-        function toggleAddModal(show) {
-            const modal = document.getElementById('addModal');
-            if (show) {
-                modal.classList.add('modal--open');
-            } else {
-                modal.classList.remove('modal--open');
-            }
-        }
-
-        function toggleEditModal(show) {
-            const modal = document.getElementById('editModal');
-            if (show) {
-                modal.classList.add('modal--open');
-            } else {
-                modal.classList.remove('modal--open');
-            }
-        }
-
-        function openEditModal(u) {
-            document.getElementById('edit_user_id').value = u.user_id;
-            document.getElementById('edit_username').value = u.username;
-            document.getElementById('edit_fullname').value = u.fullname || '';
-            document.getElementById('edit_email').value = u.email || '';
-            document.getElementById('edit_phone').value = u.phone || '';
-            document.getElementById('edit_address').value = u.address || '';
-            document.getElementById('edit_role').value = u.role;
-            document.getElementById('edit_status').value = u.status;
-
-            toggleEditModal(true);
-        }
-    </script>
 </body>
 
 </html>

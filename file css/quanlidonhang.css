@@ -494,8 +494,10 @@ a {
     z-index: 2000;
     padding: 16px;
     background-color: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
     align-items: center;
     justify-content: center;
+    overflow-y: auto;
 }
 
 .modal--open {
@@ -516,6 +518,10 @@ a {
     overflow-y: auto;
 }
 
+.modal__dialog.dh-dialog--sm {
+    max-width: 440px;
+}
+
 .modal__header {
     display: flex;
     align-items: center;
@@ -531,22 +537,39 @@ a {
 }
 
 .modal__close {
-    width: 32px;
-    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
     border: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: transparent;
     color: #64748b;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    line-height: 1;
     cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .modal__close:hover {
     background-color: #f1f5f9;
+    color: #0f172a;
 }
 
 .modal__body {
     padding: 22px 24px;
+}
+
+.modal__body > p {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #475569;
+}
+
+.modal__body > p strong {
+    color: #0f172a;
 }
 
 .modal__footer {

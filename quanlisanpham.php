@@ -1,4 +1,5 @@
 <?php
+// quanlisanpham.php
 session_start();
 require_once __DIR__ . '/ketnoi.php';
 
@@ -137,6 +138,178 @@ $sql_foods = "SELECT f.Foods_ID, f.Foods_Name, f.Foods_Price, f.Foods_Descriptio
               ORDER BY f.Foods_ID DESC";
 
 $result_foods = mysqli_query($conn, $sql_foods);
+
+// ============================================================================
+// MỞ MODAL THÊM BẰNG IF PHP (khi bấm nút có name="btn_open_add")
+// ============================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_add'])) {
+    echo '
+    <div class="modal modal--open">
+        <div class="modal__dialog">
+            <div class="modal__header">
+                <h3 class="modal__title">Thêm món ăn mới</h3>
+                <a href="quanlisanpham.php" class="modal__close"><i class="fa-solid fa-xmark"></i></a>
+            </div>
+
+            <form action="quanlisanpham.php" method="POST" enctype="multipart/form-data" class="modal__body">
+                <input type="hidden" name="action_add" value="1">
+                <div class="form-group">
+                    <label class="form-label">Tên món ăn</label>
+                    <input type="text" name="Foods_Name" required placeholder="Nhập tên món..." class="form-control">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Loại sản phẩm</label>
+                        <select name="Category_id" required class="form-control">';
+    foreach ($categories as $cat_id => $cat_name) {
+        echo '<option value="' . (int)$cat_id . '">' . htmlspecialchars($cat_name) . '</option>';
+    }
+    echo '              </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Giá bán (VNĐ)</label>
+                        <input type="number" name="Foods_Price" required placeholder="55000" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Mô tả món ăn</label>
+                    <textarea name="Foods_Description" rows="2" placeholder="Mô tả..." class="form-control"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Trạng thái bếp</label>
+                        <select name="Foods_Status" class="form-control">
+                            <option value="còn hàng">Còn hàng</option>
+                            <option value="hết hàng">Hết hàng</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Hình ảnh</label>
+                        <input type="file" name="Foods_Image" accept="image/*" class="form-file">
+                    </div>
+                </div>
+
+                <div class="modal__footer">
+                    <a href="quanlisanpham.php" class="btn btn--light">Hủy</a>
+                    <button type="submit" class="btn btn--primary">Lưu vào Database</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    ';
+}
+
+// ============================================================================
+// MỞ MODAL SỬA BẰNG IF PHP (khi bấm nút có name="btn_open_edit")
+// ============================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_edit'])) {
+    $edit_id = (int)($_POST['edit_id'] ?? 0);
+    $stmt_edit = mysqli_prepare($conn, "SELECT Foods_ID, Foods_Name, Category_id, Foods_Price, Foods_Description, Foods_Status FROM foods WHERE Foods_ID = ?");
+    mysqli_stmt_bind_param($stmt_edit, "i", $edit_id);
+    mysqli_stmt_execute($stmt_edit);
+    $edit_item = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_edit));
+    mysqli_stmt_close($stmt_edit);
+
+    if ($edit_item) {
+        $st_lower = mb_strtolower((string)($edit_item['Foods_Status'] ?? 'còn hàng'));
+        echo '
+        <div class="modal modal--open">
+            <div class="modal__dialog">
+                <div class="modal__header">
+                    <h3 class="modal__title">Sửa món ăn</h3>
+                    <a href="quanlisanpham.php" class="modal__close"><i class="fa-solid fa-xmark"></i></a>
+                </div>
+
+                <form action="quanlisanpham.php" method="POST" enctype="multipart/form-data" class="modal__body">
+                    <input type="hidden" name="action_edit" value="1">
+                    <input type="hidden" name="Foods_ID" value="' . (int)$edit_item['Foods_ID'] . '">
+
+                    <div class="form-group">
+                        <label class="form-label">Tên món ăn</label>
+                        <input type="text" name="Foods_Name" value="' . htmlspecialchars($edit_item['Foods_Name']) . '" required class="form-control">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Loại sản phẩm</label>
+                            <select name="Category_id" required class="form-control">';
+        foreach ($categories as $cat_id => $cat_name) {
+            $selected = ((int)$edit_item['Category_id'] === (int)$cat_id) ? 'selected' : '';
+            echo '<option value="' . (int)$cat_id . '" ' . $selected . '>' . htmlspecialchars($cat_name) . '</option>';
+        }
+        echo '              </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Giá bán (VNĐ)</label>
+                            <input type="number" name="Foods_Price" value="' . htmlspecialchars((string)$edit_item['Foods_Price']) . '" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Mô tả món ăn</label>
+                        <textarea name="Foods_Description" rows="2" class="form-control">' . htmlspecialchars($edit_item['Foods_Description'] ?? '') . '</textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Trạng thái bếp</label>
+                            <select name="Foods_Status" class="form-control">
+                                <option value="còn hàng" ' . ($st_lower === 'còn hàng' ? 'selected' : '') . '>Còn hàng</option>
+                                <option value="hết hàng" ' . ($st_lower === 'hết hàng' ? 'selected' : '') . '>Hết hàng</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Thay ảnh mới (nếu muốn)</label>
+                            <input type="file" name="Foods_Image" accept="image/*" class="form-file">
+                        </div>
+                    </div>
+
+                    <div class="modal__footer">
+                        <a href="quanlisanpham.php" class="btn btn--light">Hủy</a>
+                        <button type="submit" class="btn btn--blue">Cập nhật thay đổi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        ';
+    }
+}
+
+// ============================================================================
+// MỞ MODAL XÁC NHẬN XÓA BẰNG IF PHP (khi bấm nút có name="btn_open_delete")
+// ============================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_delete'])) {
+    $del_id = (int)($_POST['delete_id'] ?? 0);
+    $stmt_del = mysqli_prepare($conn, "SELECT Foods_ID, Foods_Name FROM foods WHERE Foods_ID = ?");
+    mysqli_stmt_bind_param($stmt_del, "i", $del_id);
+    mysqli_stmt_execute($stmt_del);
+    $del_item = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_del));
+    mysqli_stmt_close($stmt_del);
+
+    if ($del_item) {
+        echo '
+        <div class="modal modal--open">
+            <div class="modal__dialog">
+                <div class="modal__header">
+                    <h3 class="modal__title">Xác nhận xóa món ăn</h3>
+                    <a href="quanlisanpham.php" class="modal__close"><i class="fa-solid fa-xmark"></i></a>
+                </div>
+
+                <div class="modal__body">
+                    <p>Bạn chắc chắn muốn xóa món <strong>' . htmlspecialchars($del_item['Foods_Name']) . '</strong> (#' . (int)$del_item['Foods_ID'] . ')? Không thể hoàn tác.</p>
+                    <div class="modal__footer">
+                        <a href="quanlisanpham.php" class="btn btn--light">Hủy</a>
+                        <a href="quanlisanpham.php?action=delete&id=' . (int)$del_item['Foods_ID'] . '" class="btn btn--rose">Xác nhận xóa</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        ';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -205,11 +378,12 @@ $result_foods = mysqli_query($conn, $sql_foods);
             <div class="page-header">
                 <div>
                     <h1 class="page-title">Quản lý sản phẩm</h1>
-                    
                 </div>
-                <button onclick="toggleAddModal(true)" class="btn btn--primary">
-                    <i class="fa-solid fa-plus"></i> Thêm món mới
-                </button>
+                <form action="quanlisanpham.php" method="POST" style="display: inline;">
+                    <button type="submit" name="btn_open_add" class="btn btn--primary">
+                        <i class="fa-solid fa-plus"></i> Thêm món mới
+                    </button>
+                </form>
             </div>
 
             <!-- FORM BỘ LỌC DỮ LIỆU -->
@@ -303,12 +477,18 @@ $result_foods = mysqli_query($conn, $sql_foods);
                                             </a>
                                         </td>
                                         <td class="text-right">
-                                            <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($item)); ?>)" class="btn btn--sm btn--blue">
-                                                Sửa
-                                            </button>
-                                            <a href="quanlisanpham.php?action=delete&id=<?php echo $item['Foods_ID']; ?>" onclick="return confirm('Bạn chắc chắn muốn xóa món này?')" class="btn btn--sm btn--rose">
-                                                Xóa
-                                            </a>
+                                            <form action="quanlisanpham.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="edit_id" value="<?php echo (int)$item['Foods_ID']; ?>">
+                                                <button type="submit" name="btn_open_edit" class="btn btn--sm btn--blue">
+                                                    Sửa
+                                                </button>
+                                            </form>
+                                            <form action="quanlisanpham.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="delete_id" value="<?php echo (int)$item['Foods_ID']; ?>">
+                                                <button type="submit" name="btn_open_delete" class="btn btn--sm btn--rose">
+                                                    Xóa
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
@@ -319,154 +499,6 @@ $result_foods = mysqli_query($conn, $sql_foods);
             </div>
         </main>
     </div>
-
-    <!-- MODAL 1: THÊM MÓN ĂN MỚI -->
-    <div id="productModal" class="modal">
-        <div class="modal__dialog">
-            <div class="modal__header">
-                <h3 class="modal__title">Thêm món ăn mới</h3>
-                <button onclick="toggleAddModal(false)" class="modal__close"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <form action="quanlisanpham.php" method="POST" enctype="multipart/form-data" class="modal__body">
-                <input type="hidden" name="action_add" value="1">
-                <div class="form-group">
-                    <label class="form-label">Tên món ăn</label>
-                    <input type="text" name="Foods_Name" required placeholder="Nhập tên món..." class="form-control">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Loại sản phẩm</label>
-                        <select name="Category_id" required class="form-control">
-                            <?php foreach ($categories as $cat_id => $cat_name): ?>
-                                <option value="<?php echo $cat_id; ?>"><?php echo htmlspecialchars($cat_name); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Giá bán (VNĐ)</label>
-                        <input type="number" name="Foods_Price" required placeholder="55000" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Mô tả món ăn</label>
-                    <textarea name="Foods_Description" rows="2" placeholder="Mô tả..." class="form-control"></textarea>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Trạng thái bếp</label>
-                        <select name="Foods_Status" class="form-control">
-                            <option value="còn hàng">Còn hàng</option>
-                            <option value="hết hàng">Hết hàng</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Hình ảnh</label>
-                        <input type="file" name="Foods_Image" accept="image/*" class="form-file">
-                    </div>
-                </div>
-
-                <div class="modal__footer">
-                    <button type="button" onclick="toggleAddModal(false)" class="btn btn--light">Hủy</button>
-                    <button type="submit" class="btn btn--primary">Lưu vào Database</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 2: SỬA MÓN ĂN -->
-    <div id="editModal" class="modal">
-        <div class="modal__dialog">
-            <div class="modal__header">
-                <h3 class="modal__title">Sửa món ăn</h3>
-                <button onclick="toggleEditModal(false)" class="modal__close"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <form action="quanlisanpham.php" method="POST" enctype="multipart/form-data" class="modal__body">
-                <input type="hidden" name="action_edit" value="1">
-                <input type="hidden" id="edit_Foods_ID" name="Foods_ID">
-
-                <div class="form-group">
-                    <label class="form-label">Tên món ăn</label>
-                    <input type="text" id="edit_Foods_Name" name="Foods_Name" required class="form-control">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Loại sản phẩm</label>
-                        <select id="edit_Category_id" name="Category_id" required class="form-control">
-                            <?php foreach ($categories as $cat_id => $cat_name): ?>
-                                <option value="<?php echo $cat_id; ?>"><?php echo htmlspecialchars($cat_name); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Giá bán (VNĐ)</label>
-                        <input type="number" id="edit_Foods_Price" name="Foods_Price" required class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Mô tả món ăn</label>
-                    <textarea id="edit_Foods_Description" name="Foods_Description" rows="2" class="form-control"></textarea>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Trạng thái bếp</label>
-                        <select id="edit_Foods_Status" name="Foods_Status" class="form-control">
-                            <option value="còn hàng">Còn hàng</option>
-                            <option value="hết hàng">Hết hàng</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Thay ảnh mới (nếu muốn)</label>
-                        <input type="file" name="Foods_Image" accept="image/*" class="form-file">
-                    </div>
-                </div>
-
-                <div class="modal__footer">
-                    <button type="button" onclick="toggleEditModal(false)" class="btn btn--light">Hủy</button>
-                    <button type="submit" class="btn btn--blue">Cập nhật thay đổi</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- SCRIPTS ĐIỀU KHIỂN MODAL POPUP -->
-    <script>
-        function toggleAddModal(show) {
-            const modal = document.getElementById('productModal');
-            if (show) {
-                modal.classList.add('modal--open');
-            } else {
-                modal.classList.remove('modal--open');
-            }
-        }
-
-        function toggleEditModal(show) {
-            const modal = document.getElementById('editModal');
-            if (show) {
-                modal.classList.add('modal--open');
-            } else {
-                modal.classList.remove('modal--open');
-            }
-        }
-
-        function openEditModal(item) {
-            document.getElementById('edit_Foods_ID').value = item.Foods_ID;
-            document.getElementById('edit_Foods_Name').value = item.Foods_Name;
-            document.getElementById('edit_Category_id').value = item.Category_id;
-            document.getElementById('edit_Foods_Price').value = item.Foods_Price;
-            document.getElementById('edit_Foods_Description').value = item.Foods_Description || '';
-            document.getElementById('edit_Foods_Status').value = item.Foods_Status.toLowerCase();
-
-            toggleEditModal(true);
-        }
-    </script>
 </body>
 
 </html>

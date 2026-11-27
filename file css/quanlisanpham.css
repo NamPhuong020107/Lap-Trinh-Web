@@ -511,7 +511,7 @@ body.app-layout {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 50;
+    z-index: 2000;
     padding: 16px;
 }
 
@@ -544,19 +544,35 @@ body.app-layout {
 }
 
 .modal__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
     background: none;
     border: none;
+    border-radius: 8px;
     color: #94a3b8;
-    font-size: 1.25rem;
+    font-size: 1.1rem;
+    line-height: 1;
     cursor: pointer;
 }
-.modal__close:hover { color: #475569; }
+.modal__close:hover {
+    background-color: #f1f5f9;
+    color: #475569;
+}
 
 .modal__body {
     margin-top: 16px;
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+.modal__body > p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #475569;
 }
 
 .form-group {

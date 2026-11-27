@@ -138,6 +138,206 @@ $sql_vouchers = "SELECT voucher_id, voucher_name, code, discount_percent, date_f
                  WHERE $where_sql
                  ORDER BY voucher_id DESC";
 $result_vouchers = mysqli_query($conn, $sql_vouchers);
+
+// ============================================================================
+// MỞ MODAL THÊM BẰNG IF PHP (khi bấm nút có name="btn_open_add")
+// ============================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_add'])) {
+    echo '
+    <div class="modal modal--open">
+        <div class="modal__dialog">
+            <div class="modal__header">
+                <h3 class="modal__title">Thêm khuyến mãi mới</h3>
+                <a href="quanlikhuyenmai.php" class="modal__close">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+            </div>
+
+            <form action="quanlikhuyenmai.php" method="POST" class="modal__body">
+                <input type="hidden" name="action_add" value="1">
+
+                <div class="form-group">
+                    <label class="form-label">Tên khuyến mãi</label>
+                    <input type="text" name="voucher_name" required placeholder="Ví dụ: Combo nhiều món" class="form-control">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Mã code</label>
+                        <input type="text" name="code" required placeholder="COMBO20" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Phần trăm giảm (%)</label>
+                        <input type="number" name="discount_percent" min="1" max="100" required placeholder="20" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ngày bắt đầu</label>
+                        <input type="date" name="date_from" required class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Ngày kết thúc</label>
+                        <input type="date" name="date_to" required class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Món áp dụng (để trống = tất cả món)</label>
+                    <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; background: #f8fafc;">';
+    foreach ($all_foods as $fd) {
+        echo '<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; cursor: pointer;">
+                <input type="checkbox" name="food_ids[]" value="' . (int)$fd['Foods_ID'] . '">
+                <span>' . htmlspecialchars($fd['Foods_Name']) . '</span>
+              </label>';
+    }
+    echo '          </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Trạng thái</label>
+                    <select name="is_active" class="form-control">
+                        <option value="1">Đang áp dụng</option>
+                        <option value="0">Tạm ngưng</option>
+                    </select>
+                </div>
+
+                <div class="modal__footer">
+                    <a href="quanlikhuyenmai.php" class="btn btn--light">Hủy</a>
+                    <button type="submit" class="btn btn--primary">Lưu vào Database</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    ';
+}
+
+// ============================================================================
+// MỞ MODAL SỬA BẰNG IF PHP (khi bấm nút có name="btn_open_edit")
+// ============================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_edit'])) {
+    $edit_id = (int)($_POST['edit_id'] ?? 0);
+    $stmt_edit = mysqli_prepare($conn, "SELECT voucher_id, voucher_name, code, discount_percent, date_from, date_to, is_active FROM vouchers WHERE voucher_id = ?");
+    mysqli_stmt_bind_param($stmt_edit, "i", $edit_id);
+    mysqli_stmt_execute($stmt_edit);
+    $edit_item = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_edit));
+    mysqli_stmt_close($stmt_edit);
+
+    if ($edit_item) {
+        $selected_foods = $voucher_foods_map[(int)$edit_item['voucher_id']] ?? [];
+        echo '
+        <div class="modal modal--open">
+            <div class="modal__dialog">
+                <div class="modal__header">
+                    <h3 class="modal__title">Sửa khuyến mãi</h3>
+                    <a href="quanlikhuyenmai.php" class="modal__close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </div>
+
+                <form action="quanlikhuyenmai.php" method="POST" class="modal__body">
+                    <input type="hidden" name="action_edit" value="1">
+                    <input type="hidden" name="voucher_id" value="' . (int)$edit_item['voucher_id'] . '">
+
+                    <div class="form-group">
+                        <label class="form-label">Tên khuyến mãi</label>
+                        <input type="text" name="voucher_name" value="' . htmlspecialchars($edit_item['voucher_name']) . '" required class="form-control">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Mã code</label>
+                            <input type="text" name="code" value="' . htmlspecialchars($edit_item['code']) . '" required class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Phần trăm giảm (%)</label>
+                            <input type="number" name="discount_percent" value="' . (int)$edit_item['discount_percent'] . '" min="1" max="100" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Ngày bắt đầu</label>
+                            <input type="date" name="date_from" value="' . htmlspecialchars($edit_item['date_from']) . '" required class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Ngày kết thúc</label>
+                            <input type="date" name="date_to" value="' . htmlspecialchars($edit_item['date_to']) . '" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Món áp dụng (để trống = tất cả món)</label>
+                        <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; background: #f8fafc;">';
+        foreach ($all_foods as $fd) {
+            $fid = (int)$fd['Foods_ID'];
+            $checked = in_array($fid, $selected_foods, true) ? 'checked' : '';
+            echo '<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; cursor: pointer;">
+                    <input type="checkbox" name="food_ids[]" value="' . $fid . '" ' . $checked . '>
+                    <span>' . htmlspecialchars($fd['Foods_Name']) . '</span>
+                  </label>';
+        }
+        echo '          </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Trạng thái</label>
+                        <select name="is_active" class="form-control">
+                            <option value="1" ' . ((int)$edit_item['is_active'] === 1 ? 'selected' : '') . '>Đang áp dụng</option>
+                            <option value="0" ' . ((int)$edit_item['is_active'] === 0 ? 'selected' : '') . '>Tạm ngưng</option>
+                        </select>
+                    </div>
+
+                    <div class="modal__footer">
+                        <a href="quanlikhuyenmai.php" class="btn btn--light">Hủy</a>
+                        <button type="submit" class="btn btn--blue">Cập nhật thay đổi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        ';
+    }
+}
+
+// ============================================================================
+// MỞ MODAL XÁC NHẬN XÓA BẰNG IF PHP (khi bấm nút có name="btn_open_delete")
+// ============================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_delete'])) {
+    $del_id = (int)($_POST['delete_id'] ?? 0);
+    $stmt_del = mysqli_prepare($conn, "SELECT voucher_id, voucher_name, code FROM vouchers WHERE voucher_id = ?");
+    mysqli_stmt_bind_param($stmt_del, "i", $del_id);
+    mysqli_stmt_execute($stmt_del);
+    $del_item = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_del));
+    mysqli_stmt_close($stmt_del);
+
+    if ($del_item) {
+        echo '
+        <div class="modal modal--open">
+            <div class="modal__dialog modal__dialog--sm">
+                <div class="modal__header">
+                    <h3 class="modal__title">Xác nhận xóa khuyến mãi</h3>
+                    <a href="quanlikhuyenmai.php" class="modal__close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </div>
+
+                <div class="modal__body">
+                    <p>Xóa khuyến mãi <strong>' . htmlspecialchars($del_item['voucher_name']) . '</strong> (mã <strong>' . htmlspecialchars($del_item['code']) . '</strong>)? Liên kết món áp dụng cũng bị xóa theo, không thể hoàn tác.</p>
+                    <div class="modal__footer">
+                        <a href="quanlikhuyenmai.php" class="btn btn--light">Hủy</a>
+                        <a href="quanlikhuyenmai.php?action=delete&id=' . (int)$del_item['voucher_id'] . '" class="btn btn--rose">Xác nhận xóa</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        ';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -210,9 +410,11 @@ $result_vouchers = mysqli_query($conn, $sql_vouchers);
                 <div>
                     <h1 class="page-title">Quản lý khuyến mãi</h1>
                 </div>
-                <button onclick="toggleAddModal(true)" class="btn btn--primary">
-                    <i class="fa-solid fa-plus"></i> Thêm khuyến mãi
-                </button>
+                <form action="quanlikhuyenmai.php" method="POST" style="display: inline;">
+                    <button type="submit" name="btn_open_add" class="btn btn--primary">
+                        <i class="fa-solid fa-plus"></i> Thêm khuyến mãi
+                    </button>
+                </form>
             </div>
 
             <!-- BỘ LỌC -->
@@ -264,7 +466,6 @@ $result_vouchers = mysqli_query($conn, $sql_vouchers);
                                     $vid = (int)$item['voucher_id'];
                                     $active = (int)($item['is_active'] ?? 0) === 1;
                                     $linked_ids = $voucher_foods_map[$vid] ?? [];
-                                    $item['food_ids'] = $linked_ids;
                                     ?>
                                     <tr>
                                         <td class="text-center text-muted font-medium">#<?= $vid ?></td>
@@ -287,15 +488,18 @@ $result_vouchers = mysqli_query($conn, $sql_vouchers);
                                             </a>
                                         </td>
                                         <td class="text-right">
-                                            <button onclick='openEditModal(<?= htmlspecialchars(json_encode($item), ENT_QUOTES, "UTF-8") ?>)'
-                                                    class="btn btn--sm btn--blue">
-                                                Sửa
-                                            </button>
-                                            <a href="quanlikhuyenmai.php?action=delete&id=<?= $vid ?>"
-                                               onclick="return confirm('Bạn chắc chắn muốn xóa khuyến mãi này?')"
-                                               class="btn btn--sm btn--rose">
-                                                Xóa
-                                            </a>
+                                            <form action="quanlikhuyenmai.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="edit_id" value="<?= $vid ?>">
+                                                <button type="submit" name="btn_open_edit" class="btn btn--sm btn--blue">
+                                                    Sửa
+                                                </button>
+                                            </form>
+                                            <form action="quanlikhuyenmai.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="delete_id" value="<?= $vid ?>">
+                                                <button type="submit" name="btn_open_delete" class="btn btn--sm btn--rose">
+                                                    Xóa
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
@@ -306,176 +510,6 @@ $result_vouchers = mysqli_query($conn, $sql_vouchers);
             </div>
         </main>
     </div>
-
-    <!-- MODAL 1: THÊM KHUYẾN MÃI -->
-    <div id="addVoucherModal" class="modal">
-        <div class="modal__dialog">
-            <div class="modal__header">
-                <h3 class="modal__title">Thêm khuyến mãi mới</h3>
-                <button onclick="toggleAddModal(false)" class="modal__close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <form action="quanlikhuyenmai.php" method="POST" class="modal__body">
-                <input type="hidden" name="action_add" value="1">
-
-                <div class="form-group">
-                    <label class="form-label">Tên khuyến mãi</label>
-                    <input type="text" name="voucher_name" required placeholder="Ví dụ: Combo nhiều món" class="form-control">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Mã code</label>
-                        <input type="text" name="code" required placeholder="COMBO20" class="form-control">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Phần trăm giảm (%)</label>
-                        <input type="number" name="discount_percent" min="1" max="100" required placeholder="20" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Ngày bắt đầu</label>
-                        <input type="date" name="date_from" required class="form-control">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Ngày kết thúc</label>
-                        <input type="date" name="date_to" required class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Món áp dụng (để trống = tất cả món)</label>
-                    <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; background: #f8fafc;">
-                        <?php foreach ($all_foods as $fd): ?>
-                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; cursor: pointer;">
-                                <input type="checkbox" name="food_ids[]" value="<?= (int)$fd['Foods_ID'] ?>">
-                                <span><?= htmlspecialchars($fd['Foods_Name']) ?></span>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Trạng thái</label>
-                    <select name="is_active" class="form-control">
-                        <option value="1">Đang áp dụng</option>
-                        <option value="0">Tạm ngưng</option>
-                    </select>
-                </div>
-
-                <div class="modal__footer">
-                    <button type="button" onclick="toggleAddModal(false)" class="btn btn--light">Hủy</button>
-                    <button type="submit" class="btn btn--primary">Lưu vào Database</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 2: SỬA KHUYẾN MÃI -->
-    <div id="editVoucherModal" class="modal">
-        <div class="modal__dialog">
-            <div class="modal__header">
-                <h3 class="modal__title">Sửa khuyến mãi</h3>
-                <button onclick="toggleEditModal(false)" class="modal__close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <form action="quanlikhuyenmai.php" method="POST" class="modal__body">
-                <input type="hidden" name="action_edit" value="1">
-                <input type="hidden" id="edit_voucher_id" name="voucher_id">
-
-                <div class="form-group">
-                    <label class="form-label">Tên khuyến mãi</label>
-                    <input type="text" id="edit_voucher_name" name="voucher_name" required class="form-control">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Mã code</label>
-                        <input type="text" id="edit_code" name="code" required class="form-control">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Phần trăm giảm (%)</label>
-                        <input type="number" id="edit_discount_percent" name="discount_percent" min="1" max="100" required class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Ngày bắt đầu</label>
-                        <input type="date" id="edit_date_from" name="date_from" required class="form-control">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Ngày kết thúc</label>
-                        <input type="date" id="edit_date_to" name="date_to" required class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Món áp dụng (để trống = tất cả món)</label>
-                    <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; background: #f8fafc;">
-                        <?php foreach ($all_foods as $fd): ?>
-                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; cursor: pointer;">
-                                <input type="checkbox" class="edit-food-checkbox" name="food_ids[]" value="<?= (int)$fd['Foods_ID'] ?>">
-                                <span><?= htmlspecialchars($fd['Foods_Name']) ?></span>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Trạng thái</label>
-                    <select id="edit_is_active" name="is_active" class="form-control">
-                        <option value="1">Đang áp dụng</option>
-                        <option value="0">Tạm ngưng</option>
-                    </select>
-                </div>
-
-                <div class="modal__footer">
-                    <button type="button" onclick="toggleEditModal(false)" class="btn btn--light">Hủy</button>
-                    <button type="submit" class="btn btn--blue">Cập nhật thay đổi</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function toggleAddModal(show) {
-            const modal = document.getElementById('addVoucherModal');
-            modal.classList.toggle('modal--open', show);
-        }
-
-        function toggleEditModal(show) {
-            const modal = document.getElementById('editVoucherModal');
-            modal.classList.toggle('modal--open', show);
-        }
-
-        function openEditModal(item) {
-            document.getElementById('edit_voucher_id').value = item.voucher_id;
-            document.getElementById('edit_voucher_name').value = item.voucher_name;
-            document.getElementById('edit_code').value = item.code;
-            document.getElementById('edit_discount_percent').value = item.discount_percent;
-            document.getElementById('edit_date_from').value = item.date_from;
-            document.getElementById('edit_date_to').value = item.date_to;
-            document.getElementById('edit_is_active').value = parseInt(item.is_active) === 1 ? '1' : '0';
-
-            const selectedIds = new Set((item.food_ids || []).map(id => parseInt(id)));
-            document.querySelectorAll('.edit-food-checkbox').forEach(cb => {
-                cb.checked = selectedIds.has(parseInt(cb.value));
-            });
-
-            toggleEditModal(true);
-        }
-    </script>
 </body>
 
 </html>

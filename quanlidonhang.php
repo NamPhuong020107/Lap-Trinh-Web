@@ -1,4 +1,5 @@
 <?php
+// quanlidonhang.php
 session_start();
 require_once __DIR__ . '/ketnoi.php';
 
@@ -6,6 +7,7 @@ if (!isset($_SESSION['role']) || ($_SESSION['role'] != "manager" && $_SESSION['r
     header("location:admin.php");
     exit;
 }
+
 // Các trạng thái đơn hàng: mã trong database => tên hiển thị
 const TRANG_THAI = [
     'dang xu ly' => 'Đang xử lý',
@@ -13,6 +15,7 @@ const TRANG_THAI = [
     'hoan thanh' => 'Hoàn thành',
     'da huy'     => 'Đã hủy',
 ];
+
 // Màu của huy hiệu trạng thái (class trong quanlidonhang.css)
 const TRANG_THAI_CLASS = [
     'dang xu ly' => 'pending',
@@ -114,19 +117,138 @@ $result_orders = mysqli_query(
 );
 $orders = $result_orders ? mysqli_fetch_all($result_orders, MYSQLI_ASSOC) : [];
 
-// Lấy các món của tất cả đơn đang hiển thị (1 câu truy vấn) để xem chi tiết trong popup
-$details_map = [];
-if (!empty($orders)) {
-    $ids = implode(',', array_map('intval', array_column($orders, 'Orders_id')));
-    $r = mysqli_query(
+// ============================================================================
+// MỞ MODAL CHI TIẾT ĐƠN BẰNG IF PHP (khi bấm nút có name="btn_open_detail")
+// ============================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_detail'])) {
+    $detail_id = (int)($_POST['detail_id'] ?? 0);
+    $stmt_o = mysqli_prepare(
         $conn,
-        "SELECT d.Orders_ID, d.Order_Details_Quantity AS sl, d.Order_Details_Price AS tien, f.Foods_Name AS ten
-         FROM order_details d
-         LEFT JOIN foods f ON f.Foods_ID = d.Foods_ID
-         WHERE d.Orders_ID IN ($ids)"
+        "SELECT o.*, v.code AS voucher_code, v.discount_percent
+         FROM orders o
+         LEFT JOIN vouchers v ON v.voucher_id = o.voucher_id
+         WHERE o.Orders_id = ?"
     );
-    while ($d = mysqli_fetch_assoc($r)) {
-        $details_map[$d['Orders_ID']][] = ['ten' => $d['ten'], 'sl' => (int)$d['sl'], 'tien' => (float)$d['tien']];
+    mysqli_stmt_bind_param($stmt_o, "i", $detail_id);
+    mysqli_stmt_execute($stmt_o);
+    $detail_order = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_o));
+    mysqli_stmt_close($stmt_o);
+
+    if ($detail_order) {
+        $stmt_d = mysqli_prepare($conn,
+            "SELECT d.Order_Details_Quantity AS sl, d.Order_Details_Price AS tien, f.Foods_Name AS ten
+             FROM order_details d
+             LEFT JOIN foods f ON f.Foods_ID = d.Foods_ID
+             WHERE d.Orders_ID = ?"
+        );
+        mysqli_stmt_bind_param($stmt_d, "i", $detail_id);
+        mysqli_stmt_execute($stmt_d);
+        $detail_items = mysqli_fetch_all(mysqli_stmt_get_result($stmt_d), MYSQLI_ASSOC);
+        mysqli_stmt_close($stmt_d);
+
+        $date_fmt = date('H:i d/m/Y', strtotime($detail_order['Orders_date']));
+        $giam = max(0, (float)$detail_order['Subtotal'] + (float)$detail_order['shipping_fee'] - (float)$detail_order['Orders_total_amount']);
+        $giam_label = !empty($detail_order['voucher_code'])
+            ? 'Voucher ' . $detail_order['voucher_code'] . ' (-' . (int)$detail_order['discount_percent'] . '%)'
+            : 'Giảm giá';
+        $note_txt = trim((string)($detail_order['Orders_Note'] ?? '')) !== '' ?$detail_order['Orders_Note'] : '—';
+
+        echo '
+        <div class="modal modal--open">
+            <div class="modal__dialog dh-dialog">
+                <div class="modal__header">
+                    <h3 class="modal__title">Chi tiết đơn #' . (int)$detail_order['Orders_id'] . '</h3>
+                    <a href="quanlidonhang.php" class="modal__close"><i class="fa-solid fa-xmark"></i></a>
+                </div>
+
+                <div class="modal__body">
+                    <div class="dh-info">
+                        <span>Ngày đặt</span><b>' . htmlspecialchars($date_fmt) . '</b>
+                        <span>Người nhận</span><b>' . htmlspecialchars($detail_order['receiver_name'] ?? '') . '</b>
+                        <span>Số điện thoại</span><b>' . htmlspecialchars($detail_order['receiver_phone'] ?? '') . '</b>
+                        <span>Địa chỉ</span><b>' . htmlspecialchars($detail_order['receiver_address'] ?? '') . '</b>
+                        <span>Ghi chú</span><b>' . htmlspecialchars($note_txt) . '</b>
+                        <span>Thanh toán</span><b>' . htmlspecialchars($detail_order['payment_method'] ?? '') . '</b>
+                    </div>
+
+                    <table class="dh-items">
+                        <thead>
+                            <tr>
+                                <th>Món</th>
+                                <th class="dh-r">SL</th>
+                                <th class="dh-r">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>';
+        foreach ($detail_items as$m) {
+            echo '<tr>
+                    <td>' . htmlspecialchars($m['ten'] ?: '(món đã xóa)') . '</td>
+                    <td class="dh-r">' . (int)$m['sl'] . '</td>
+                    <td class="dh-r">' . tien($m['tien']) . '</td>
+                  </tr>';
+        }
+        echo '          </tbody>
+                    </table>
+
+                    <div class="dh-sum"><span>Tạm tính</span><span>' . tien($detail_order['Subtotal']) . '</span></div>
+                    <div class="dh-sum"><span>Phí giao hàng</span><span>' . tien($detail_order['shipping_fee']) . '</span></div>';
+        if ($giam > 0) {
+            echo '<div class="dh-sum"><span>' . htmlspecialchars($giam_label) . '</span><span>-' . tien($giam) . '</span></div>';
+        }
+        echo '      <div class="dh-sum dh-sum--total"><span>Tổng cộng</span><span>' . tien($detail_order['Orders_total_amount']) . '</span></div>
+
+                    <form action="quanlidonhang.php" method="POST" class="dh-status-form">
+                        <input type="hidden" name="action_status" value="1">
+                        <input type="hidden" name="Orders_id" value="' . (int)$detail_order['Orders_id'] . '">
+                        <label class="form-label">Trạng thái đơn hàng</label>
+                        <select name="Orders_status" class="form-control">';
+        foreach (TRANG_THAI as $ma => $ten) {$selected = ($detail_order['Orders_status'] ===$ma) ? 'selected' : '';
+            echo '<option value="' . $ma . '" ' . $selected . '>' .$ten . '</option>';
+        }
+        echo '          </select>
+
+                        <div class="modal__footer">
+                            <a href="quanlidonhang.php" class="btn btn--light">Đóng</a>
+                            <button type="submit" class="btn btn--blue">Cập nhật trạng thái</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        ';
+    }
+}
+
+// ============================================================================
+// MỞ MODAL XÁC NHẬN XÓA ĐƠN BẰNG IF PHP (khi bấm nút có name="btn_open_delete")
+// ============================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_open_delete'])) {
+    $del_id = (int)($_POST['delete_id'] ?? 0);
+    $stmt_del = mysqli_prepare($conn, "SELECT Orders_id, receiver_name, Orders_total_amount FROM orders WHERE Orders_id = ?");
+    mysqli_stmt_bind_param($stmt_del, "i", $del_id);
+    mysqli_stmt_execute($stmt_del);
+    $del_order = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt_del));
+    mysqli_stmt_close($stmt_del);
+
+    if ($del_order) {
+        echo '
+        <div class="modal modal--open">
+            <div class="modal__dialog dh-dialog--sm">
+                <div class="modal__header">
+                    <h3 class="modal__title">Xác nhận xóa đơn #' . (int)$del_order['Orders_id'] . '</h3>
+                    <a href="quanlidonhang.php" class="modal__close"><i class="fa-solid fa-xmark"></i></a>
+                </div>
+
+                <div class="modal__body">
+                    <p>Xóa đơn hàng <strong>#' . (int)$del_order['Orders_id'] . '</strong> của <strong>' . htmlspecialchars($del_order['receiver_name'] ?? '') . '</strong> (' . tien($del_order['Orders_total_amount']) . ')? Chi tiết món trong đơn cũng bị xóa theo, không thể hoàn tác.</p>
+                    <div class="modal__footer">
+                        <a href="quanlidonhang.php" class="btn btn--light">Hủy</a>
+                        <a href="quanlidonhang.php?action=delete&id=' . (int)$del_order['Orders_id'] . '" class="btn btn--rose">Xác nhận xóa</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        ';
     }
 }
 ?>
@@ -215,8 +337,8 @@ if (!empty($orders)) {
 
                 <select name="status" class="form-control">
                     <option value="">Tất cả trạng thái</option>
-                    <?php foreach (TRANG_THAI as $ma => $ten): ?>
-                        <option value="<?php echo $ma; ?>" <?php echo $status_filter === $ma ? 'selected' : ''; ?>>
+                    <?php foreach (TRANG_THAI as $ma =>$ten): ?>
+                        <option value="<?php echo $ma; ?>" <?php echo $status_filter ===$ma ? 'selected' : ''; ?>>
                             <?php echo $ten; ?>
                         </option>
                     <?php endforeach; ?>
@@ -224,8 +346,8 @@ if (!empty($orders)) {
 
                 <select name="pay" class="form-control">
                     <option value="">Mọi phương thức thanh toán</option>
-                    <?php foreach ($pay_methods as $pm): ?>
-                        <option value="<?php echo htmlspecialchars($pm); ?>" <?php echo $pay_filter === $pm ? 'selected' : ''; ?>>
+                    <?php foreach ($pay_methods as$pm): ?>
+                        <option value="<?php echo htmlspecialchars($pm); ?>" <?php echo $pay_filter ===$pm ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($pm); ?>
                         </option>
                     <?php endforeach; ?>
@@ -263,22 +385,16 @@ if (!empty($orders)) {
                                     <td colspan="7" class="table-empty">Không tìm thấy đơn hàng nào!</td>
                                 </tr>
                             <?php else: ?>
-                                <?php foreach ($orders as $o): ?>
+                                <?php foreach ($orders as$o): ?>
                                     <?php
-                                    $st = $o['Orders_status'];
-                                    $st_class = TRANG_THAI_CLASS[$st] ?? 'pending';
-                                    $st_label = TRANG_THAI[$st] ?? $st;
-
-                                    // Dữ liệu gửi sang popup xem chi tiết
-                                    $o_js = $o;
-                                    $o_js['date_fmt'] = date('H:i d/m/Y', strtotime($o['Orders_date']));
-                                    $o_js['giam'] = max(0, $o['Subtotal'] + $o['shipping_fee'] - $o['Orders_total_amount']);
+                                    $st = $o['Orders_status'];$st_class = TRANG_THAI_CLASS[$st] ?? 'pending';$st_label = TRANG_THAI[$st] ?? $st;
+                                    $date_fmt = date('H:i d/m/Y', strtotime($o['Orders_date']));
                                     ?>
                                     <tr>
                                         <td class="text-center text-muted font-medium">
-                                            #<?php echo $o['Orders_id']; ?>
+                                            #<?php echo (int)$o['Orders_id']; ?>
                                         </td>
-                                        <td><?php echo $o_js['date_fmt']; ?></td>
+                                        <td><?php echo $date_fmt; ?></td>
                                         <td>
                                             <div class="food-name"><?php echo htmlspecialchars($o['receiver_name']); ?></div>
                                             <div class="food-desc"><?php echo htmlspecialchars($o['receiver_phone']); ?></div>
@@ -293,12 +409,18 @@ if (!empty($orders)) {
                                             <span class="dh-badge dh-badge--<?php echo $st_class; ?>"><?php echo htmlspecialchars($st_label); ?></span>
                                         </td>
                                         <td class="text-right">
-                                            <button onclick="openDetailModal(<?php echo htmlspecialchars(json_encode($o_js)); ?>)" class="btn btn--sm btn--blue">
-                                                Xem
-                                            </button>
-                                            <a href="quanlidonhang.php?action=delete&id=<?php echo $o['Orders_id']; ?>" onclick="return confirm('Bạn chắc chắn muốn xóa đơn #<?php echo $o['Orders_id']; ?>? Không thể hoàn tác.')" class="btn btn--sm btn--rose">
-                                                Xóa
-                                            </a>
+                                            <form action="quanlidonhang.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="detail_id" value="<?php echo (int)$o['Orders_id']; ?>">
+                                                <button type="submit" name="btn_open_detail" class="btn btn--sm btn--blue">
+                                                    Xem
+                                                </button>
+                                            </form>
+                                            <form action="quanlidonhang.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="delete_id" value="<?php echo (int)$o['Orders_id']; ?>">
+                                                <button type="submit" name="btn_open_delete" class="btn btn--sm btn--rose">
+                                                    Xóa
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -309,117 +431,6 @@ if (!empty($orders)) {
             </div>
         </main>
     </div>
-
-    <!-- MODAL: CHI TIẾT ĐƠN HÀNG + ĐỔI TRẠNG THÁI -->
-    <div id="detailModal" class="modal">
-        <div class="modal__dialog dh-dialog">
-            <div class="modal__header">
-                <h3 class="modal__title">Chi tiết đơn <span id="dh_id"></span></h3>
-                <button onclick="toggleDetailModal(false)" class="modal__close"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <div class="modal__body">
-                <div class="dh-info">
-                    <span>Ngày đặt</span><b id="dh_date"></b>
-                    <span>Người nhận</span><b id="dh_name"></b>
-                    <span>Số điện thoại</span><b id="dh_phone"></b>
-                    <span>Địa chỉ</span><b id="dh_addr"></b>
-                    <span>Ghi chú</span><b id="dh_note"></b>
-                    <span>Thanh toán</span><b id="dh_pay"></b>
-                </div>
-
-                <table class="dh-items">
-                    <thead>
-                        <tr>
-                            <th>Món</th>
-                            <th class="dh-r">SL</th>
-                            <th class="dh-r">Thành tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dh_items"></tbody>
-                </table>
-
-                <div class="dh-sum"><span>Tạm tính</span><span id="dh_sub"></span></div>
-                <div class="dh-sum"><span>Phí giao hàng</span><span id="dh_ship"></span></div>
-                <div class="dh-sum" id="dh_giam_row"><span id="dh_giam_label">Giảm giá</span><span id="dh_giam"></span></div>
-                <div class="dh-sum dh-sum--total"><span>Tổng cộng</span><span id="dh_total"></span></div>
-
-                <!-- Form đổi trạng thái -->
-                <form action="quanlidonhang.php" method="POST" class="dh-status-form">
-                    <input type="hidden" name="action_status" value="1">
-                    <input type="hidden" id="dh_status_id" name="Orders_id">
-                    <label class="form-label">Trạng thái đơn hàng</label>
-                    <select id="dh_status" name="Orders_status" class="form-control">
-                        <?php foreach (TRANG_THAI as $ma => $ten): ?>
-                            <option value="<?php echo $ma; ?>"><?php echo $ten; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <div class="modal__footer">
-                        <button type="button" onclick="toggleDetailModal(false)" class="btn btn--light">Đóng</button>
-                        <button type="submit" class="btn btn--blue">Cập nhật trạng thái</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- SCRIPTS ĐIỀU KHIỂN MODAL POPUP -->
-    <script>
-        // Các món của từng đơn: { mã_đơn: [ {ten, sl, tien}, ... ] }
-        const ORDER_ITEMS = <?php echo json_encode($details_map, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-
-        function tien(n) {
-            return Number(n).toLocaleString('vi-VN') + 'đ';
-        }
-
-        function toggleDetailModal(show) {
-            const modal = document.getElementById('detailModal');
-            if (show) {
-                modal.classList.add('modal--open');
-            } else {
-                modal.classList.remove('modal--open');
-            }
-        }
-
-        function openDetailModal(o) {
-            document.getElementById('dh_id').textContent = '#' + o.Orders_id;
-            document.getElementById('dh_date').textContent = o.date_fmt;
-            document.getElementById('dh_name').textContent = o.receiver_name || '';
-            document.getElementById('dh_phone').textContent = o.receiver_phone || '';
-            document.getElementById('dh_addr').textContent = o.receiver_address || '';
-            document.getElementById('dh_note').textContent = o.Orders_Note || '—';
-            document.getElementById('dh_pay').textContent = o.payment_method || '';
-
-            // Danh sách món (dùng textContent để không bị chèn mã HTML)
-            const tbody = document.getElementById('dh_items');
-            tbody.innerHTML = '';
-            (ORDER_ITEMS[o.Orders_id] || []).forEach(function(m) {
-                const tr = document.createElement('tr');
-                [m.ten || '(món đã xóa)', m.sl, tien(m.tien)].forEach(function(text, i) {
-                    const td = document.createElement('td');
-                    td.textContent = text;
-                    if (i > 0) td.className = 'dh-r';
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('dh_sub').textContent = tien(o.Subtotal);
-            document.getElementById('dh_ship').textContent = tien(o.shipping_fee);
-            document.getElementById('dh_giam_label').textContent = o.voucher_code ?
-                'Voucher ' + o.voucher_code + ' (-' + o.discount_percent + '%)' :
-                'Giảm giá';
-            document.getElementById('dh_giam').textContent = '-' + tien(o.giam);
-            document.getElementById('dh_giam_row').style.display = o.giam > 0 ? 'flex' : 'none';
-            document.getElementById('dh_total').textContent = tien(o.Orders_total_amount);
-
-            document.getElementById('dh_status_id').value = o.Orders_id;
-            document.getElementById('dh_status').value = o.Orders_status;
-
-            toggleDetailModal(true);
-        }
-    </script>
 </body>
 
 </html>
